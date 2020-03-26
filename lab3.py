@@ -2,6 +2,7 @@ import numpy as np
 import random
 from numpy.linalg import solve
 from scipy.stats import f, t
+import time
 
 
 # Обчислює max та min значення у
@@ -194,4 +195,6 @@ if __name__ == '__main__':
     x3_min = 25
     x3_max = 30
 
+    start_time = time.time()
     main(4, 4)
+    print(f'\nЧас виконання програми: {(time.time() - start_time)} секунд')
