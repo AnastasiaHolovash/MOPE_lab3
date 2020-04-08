@@ -3,4 +3,4 @@
 ### Варіант №205
 Результат виконня завдання:
 
-![Знімок екрана 2020-03-25 о 16 48 19](https://user-images.githubusercontent.com/47688846/77549674-c9fc1480-6eb8-11ea-9981-da7f8d6fd4d2.png)
+![image](https://user-images.githubusercontent.com/47688846/77672482-a3f67300-6f91-11ea-9827-24906c778999.png)
