@@ -12,7 +12,7 @@ def find_y():
 
     return 200 + int(x_min_average), 200 + int(x_max_average)
 
-
+# OK
 # Обчислення рівняння регрестї
 def regression(x, b):
     y = sum([x[i]*b[i] for i in range(len(x))])
@@ -56,7 +56,7 @@ def planning_matrix(n, m, x_range):
 
     return x, y, x_normalized
 
-# Повертає масив рередніх значень функції відгуку за рядками та
+# Повертає масив cередніх значень функції відгуку за рядками та
 # масив коефіцієнтів рівняння регресії
 def regression_equation(x, y, n):
     y_average = [round(sum(i) / len(i), 2) for i in y]
@@ -88,7 +88,7 @@ def regression_equation(x, y, n):
 
     return y_average, B
 
-
+# OK
 # Повертає масив з дисперсіями по рядках
 def dispersion(y, y_aver, n, m):
     result = []
