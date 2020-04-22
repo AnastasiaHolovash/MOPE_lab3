@@ -2,8 +2,8 @@ import random
 import numpy as np
 import sklearn.linear_model as lm
 from scipy.stats import f, t
-# from numpy.linalg import solve
 from prettytable import PrettyTable
+import math
 
 
 # Обчислення рівняння регрестї
@@ -34,12 +34,12 @@ def planing_matrix(n, m, interaction, quadratic_terms):
                     [1, 1, 1, 1]]
 
     # Створює матрицю n на m заповнену нулями
-    y = np.zeros(shape=(n, m), dtype=np.int64)
+    y = np.zeros(shape=(n, m))
     # Заповнює матрицю планування випадковим чином
     for i in range(n):
         for j in range(m):
             y[i][j] = random.randint(y_min, y_max)
-
+    # print(y)
     # З yрахуванням ефекту взаємодії
     if interaction:
         for x in x_normalized:
@@ -48,15 +48,43 @@ def planing_matrix(n, m, interaction, quadratic_terms):
             x.append(x[2] * x[3])
             x.append(x[1] * x[2] * x[3])
 
-    if quadratic_terms:
+    if quadratic_terms and interaction:
         for row in x_normalized:
             for i in range(0, 3):
                 row.append(1)
 
+        l = 1.215
+        for i in range(0, 3):
+            row1 = [1]
+            row2 = [1]
+            for n in range(0, i):
+                row1.append(0)
+                row2.append(0)
+            row1.append(-l)
+            row2.append(l)
+            for _ in range(0, 6):
+                row1.append(0)
+                row2.append(0)
+            row1.append(round(l*l, 3))
+            row2.append(round(l*l, 3))
+            temp = 2 - i
+            for _ in range(0, temp):
+                row1.append(0)
+                row2.append(0)
+            x_normalized.append(row1)
+            x_normalized.append(row2)
+        row15 = []
+        for _ in range(0, 11):
+            row15.append(0)
+        x_normalized.append(row15)
+
+
+    # print(x_normalized)
+
     # Визначає кількість рядків матриці планування
     x_normalized = np.array(x_normalized[:len(y)])
     # Створює матрицю заповнену одиницями
-    x = np.ones(shape=(len(x_normalized), len(x_normalized[0])), dtype=np.int64)
+    x = np.ones(shape=(len(x_normalized), len(x_normalized[0])))
 
     # Заповнює матрицю з натуралізованими значеннями факторів
     for i in range(len(x_normalized)):
@@ -65,21 +93,38 @@ def planing_matrix(n, m, interaction, quadratic_terms):
                 x[i][j] = x_range[j - 1][0]
             else:
                 x[i][j] = x_range[j - 1][1]
+    # print(x)
+    if quadratic_terms and interaction:
+        x[8] = [1,-l * delta_x(0) + x_nul(0), x_nul(1), x_nul(2), 1, 1, 1, 1, 1, 1, 1]
+        x[9] = [1, l * delta_x(0) + x_nul(0), x_nul(1), x_nul(2), 1, 1, 1, 1, 1, 1, 1]
+        x[10] = [1, x_nul(0), -l * delta_x(1) + x_nul(1), x_nul(2), 1, 1, 1, 1, 1, 1, 1]
+        x[11] = [1, x_nul(0),  l * delta_x(1) + x_nul(1), x_nul(2), 1, 1, 1, 1, 1, 1, 1]
+        x[12] = [1, x_nul(0), x_nul(1), -l * delta_x(2) + x_nul(2), 1, 1, 1, 1, 1, 1, 1]
+        x[13] = [1, x_nul(0), x_nul(1),  l * delta_x(2) + x_nul(2), 1, 1, 1, 1, 1, 1, 1]
+        x[14] = [1, x_nul(0), x_nul(1), x_nul(2), 1, 1, 1, 1, 1, 1, 1]
+
+        for i in range(8, 15):
+            for j in range(0, 11):
+                x[i][j] = round(x[i][j], 3)
 
     # З yрахуванням ефекту взаємодії
     if interaction:
         for i in range(len(x)):
-            x[i][4] = x[i][1] * x[i][2]
-            x[i][5] = x[i][1] * x[i][3]
-            x[i][6] = x[i][2] * x[i][3]
-            x[i][7] = x[i][1] * x[i][3] * x[i][2]
+            x[i][4] = round(x[i][1] * x[i][2], 3)
+            x[i][5] = round(x[i][1] * x[i][3], 3)
+            x[i][6] = round(x[i][2] * x[i][3], 3)
+            x[i][7] = round(x[i][1] * x[i][3] * x[i][2], 3)
+            x[i][8] = round(x[i][1] * x[i][1], 3)
+            x[i][9] = round(x[i][2] * x[i][2], 3)
+            x[i][10] = round(x[i][3] * x[i][3], 3)
+
 
     if interaction:
         # З yрахуванням ефекту взаємодії
         print(f'\nМатриця планування для n = {n}, m = {m}')
 
         print('\nЗ кодованими значеннями факторів:')
-        caption = ["X0", "X1", "X2", "X3", "X1X2", "X1X3", "X2X3", "X1X2X3", "Y1", "Y2", "Y3"]
+        caption = ["X0", "X1", "X2", "X3", "X1X2", "X1X3", "X2X3", "X1X2X3","X1^2", "X2^2", "X3^2", "Y1", "Y2", "Y3"]
         rows_kod = np.concatenate((x, y), axis=1)
         print_table(caption, rows_kod)
 
@@ -92,8 +137,15 @@ def planing_matrix(n, m, interaction, quadratic_terms):
         rows = np.concatenate((x, y), axis=1)
         print_table(caption, rows)
 
-
     return x, y, x_normalized
+
+
+def x_nul(n):
+    return (x_range[n][0] + x_range[n][1]) / 2
+
+
+def delta_x(n):
+    return x_nul(n) - x_range[n][0]
 
 
 def print_table(caption, values):
@@ -119,55 +171,35 @@ def find_coef(X, Y, norm=False):
     return B
 
 
-def bs(x, y, y_aver, n):
-    res = [sum(1 * y for y in y_aver) / n]
-    for i in range(7):  # 8 - ксть факторів
-        b = sum(j[0] * j[1] for j in zip(x[:, i], y_aver)) / n
-        res.append(b)
+def s_kv(y, y_aver, n, m):
+    """
+    Функція для знаходження квадратної дисперсії
+    """
+    res = []
+    for i in range(n):
+        s = sum([(y_aver[i] - y[i][j])**2 for j in range(m)]) / m
+        res.append(s)
     return res
 
 
-def kriteriy_studenta2(x, y, y_aver, n, m):
-    S_kv = dispersion(y, y_aver, n, m)
-    s_kv_aver = sum(S_kv) / n
+def kriteriy_fishera(y, y_aver, y_new, n, m, d):
+    """
+    Функція для знаходження критерія фішера
+    """
+    S_kv_ad = (m / (n - d)) * sum([(y_new[i] - y_aver[i])**2 for i in range(len(y))])
+    S_kv_b = s_kv(y, y_aver, n, m)
+    S_kv_b_aver = sum(S_kv_b) / n
 
-    # статиcтична оцінка дисперсії
-    s_Bs = (s_kv_aver / n / m) ** 0.5
-    Bs = bs(x, y, y_aver, n)
-    ts = [round(abs(B) / s_Bs, 3) for B in Bs]
+    return S_kv_ad / S_kv_b_aver
 
-    return ts
-
-
-def kriteriy_studenta(x, y_average, n, m, dispersion):
-    dispersion_average = sum(dispersion) / n
-    s_beta_s = (dispersion_average / n / m) ** 0.5
-
-    beta = [sum(1 * y for y in y_average) / n]
-    for i in range(3):
-        b = sum(j[0] * j[1] for j in zip(x[:,i], y_average)) / n
-        beta.append(b)
-
-    t = [round(abs(b) / s_beta_s, 3) for b in beta]
-
-    return t
-
-
-def kriteriy_fishera(y, y_average, y_new, n, m, d, dispersion):
-    S_ad = m / (n - d) * sum([(y_new[i] - y_average[i])**2 for i in range(len(y))])
-    dispersion_average = sum(dispersion) / n
-
-    return S_ad / dispersion_average
-
-
-def check(n, m, interaction):
+def check(n, m, interaction, quadratic_terms):
 
     f1 = m - 1
     f2 = n
     f3 = f1 * f2
     q = 0.05
 
-    x, y, x_norm = planing_matrix(n, m, interaction)
+    x, y, x_norm = planing_matrix(n, m, interaction, quadratic_terms)
 
     if interaction:
         y_average = [round(sum(i) / len(i), 3) for i in y]
@@ -200,10 +232,14 @@ def check(n, m, interaction):
     qq = (1 + 0.95) / 2
     student_cr_table = t.ppf(df=f3, q=qq)
     # Розрахункове значення критерія Стюдента
-    if interaction:
-        student_t = kriteriy_studenta2(x_norm[:, 1:], y, y_average, n, m)
-    else:
-        student_t = kriteriy_studenta(x_norm[:, 1:], y_average, n, m, dispersion_arr)
+
+    Dispersion_B = sum(dispersion_arr) / n
+    Dispersion_beta = Dispersion_B / (m * n)
+    S_beta = math.sqrt(abs(Dispersion_beta))
+
+    student_t = []
+    for i in range(len(B)):
+        student_t.append(round(abs(B[i]) / S_beta, 3))
 
     print('\nТабличне значення критерій Стьюдента:\n', student_cr_table)
     print('Розрахункове значення критерій Стьюдента:\n', student_t)
@@ -215,22 +251,25 @@ def check(n, m, interaction):
     y_new = []
     if interaction:
         for j in range(n):
-            y_new.append(regression([x_norm[j][i] for i in range(len(student_t)) if student_t[i] in res_student_t], final_coefficients))
+            y_new.append(regression([x[j][i] for i in range(len(student_t)) if student_t[i] in res_student_t], final_coefficients))
     else:
         for j in range(n):
             y_new.append(regression([x[j][student_t.index(i)] for i in student_t if i in res_student_t], final_coefficients))
 
-    print(f'\nЗначення значення рівння регресії з коефіцієнтами {final_coefficients}: ')
+    print(f'\nЗначення рівння регресії з коефіцієнтами {final_coefficients}: ')
+    for i in range(len(y_new)):
+        y_new[i] = round(y_new[i], 3)
     print(y_new)
-
     d = len(res_student_t)
+
     if d >= n:
         print('\nF4 <= 0')
         print('')
         return
     f4 = n - d
+
     # Розрахункове значення критерія Фішера
-    Fp = kriteriy_fishera(y, y_average, y_new, n, m, d, dispersion_arr)
+    Fp = kriteriy_fishera(y, y_average, y_new, n, m, d)
     # Табличне значення критерія Фішера
     Ft = f.ppf(dfn=f4, dfd=f3, q=1 - 0.05)
 
@@ -246,14 +285,14 @@ def check(n, m, interaction):
 
 
 def main(n, m):
-    if not check(n, m, False):
-        if not check(n, m, True):
+    if not check(n, m, False, False):
+        if not check(15, m, True, True):
             main(n, m)
 
 
 if __name__ == '__main__':
     # Значення за варіантом
-    x_range = ((4, 4), (-10, 4), (-5, 6))
+    x_range = ((-7, 4), (-6, 10), (-8, 1))
 
     y_max = 200 + int(sum([x[1] for x in x_range]) / 3)
     y_min = 200 + int(sum([x[0] for x in x_range]) / 3)
