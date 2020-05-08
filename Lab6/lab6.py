@@ -22,9 +22,13 @@ def dispersion(y, y_aver, n, m):
     return res
 
 
-def myVariantY(x1, x2, x3):
-    result = 10.0 + 6.7 * x1 + 6.4 * x2 + 8.0 * x3 + (6.2 * x1 * x1) + (0.2 * x2 * x2) + (7.6 * x3 * x3) + (
-                1.2 * x1 * x2) + (0.7 * x1 * x3) + (1.1 * x2 * x3) + (2.8 * x1 * x2 * x3)
+def myVariantY(x1, x2, x3, interaction):
+    result = 0
+    if interaction:
+        result = 10.0 + 6.7 * x1 + 6.4 * x2 + 8.0 * x3 +(1.2 * x1 * x2) + (0.7 * x1 * x3) + (1.1 * x2 * x3) + (2.8 * x1 * x2 * x3)
+    else:
+        result = 10.0 + 6.7 * x1 + 6.4 * x2 + 8.0 * x3 + (6.2 * x1 * x1) + (0.2 * x2 * x2) + (7.6 * x3 * x3) + (1.2 * x1 * x2) + (0.7 * x1 * x3) + (1.1 * x2 * x3) + (2.8 * x1 * x2 * x3)
+    
     return round(result, 3)
 
 
@@ -42,19 +46,20 @@ def planing_matrix(n, m, interaction, quadratic_terms):
 
     # print(y)
     # З yрахуванням ефекту взаємодії
-    if interaction:
+    if interaction or quadratic_terms:
         for x in x_normalized:
             x.append(x[1] * x[2])
             x.append(x[1] * x[3])
             x.append(x[2] * x[3])
             x.append(x[1] * x[2] * x[3])
 
-    if quadratic_terms and interaction:
+    l = 1.73
+    
+    if quadratic_terms:
         for row in x_normalized:
             for i in range(0, 3):
                 row.append(1)
 
-        l = 1.215
         for i in range(0, 3):
             row1 = [1]
             row2 = [1]
@@ -93,7 +98,7 @@ def planing_matrix(n, m, interaction, quadratic_terms):
             else:
                 x[i][j] = x_range[j - 1][1]
     # print(x)
-    if quadratic_terms and interaction:
+    if quadratic_terms:
         x[8] = [1, -l * delta_x(0) + x_nul(0), x_nul(1), x_nul(2), 1, 1, 1, 1, 1, 1, 1]
         x[9] = [1, l * delta_x(0) + x_nul(0), x_nul(1), x_nul(2), 1, 1, 1, 1, 1, 1, 1]
         x[10] = [1, x_nul(0), -l * delta_x(1) + x_nul(1), x_nul(2), 1, 1, 1, 1, 1, 1, 1]
@@ -106,12 +111,14 @@ def planing_matrix(n, m, interaction, quadratic_terms):
                 x[i][j] = round(x[i][j], 3)
 
     # З yрахуванням ефекту взаємодії
-    if interaction:
+    if interaction or quadratic_terms:
         for i in range(len(x)):
             x[i][4] = round(x[i][1] * x[i][2], 3)
             x[i][5] = round(x[i][1] * x[i][3], 3)
             x[i][6] = round(x[i][2] * x[i][3], 3)
             x[i][7] = round(x[i][1] * x[i][3] * x[i][2], 3)
+    if quadratic_terms:
+        for i in range(len(x)):
             x[i][8] = round(x[i][1] * x[i][1], 3)
             x[i][9] = round(x[i][2] * x[i][2], 3)
             x[i][10] = round(x[i][3] * x[i][3], 3)
@@ -124,14 +131,14 @@ def planing_matrix(n, m, interaction, quadratic_terms):
             x1 = x[i][1]
             x2 = x[i][2]
             x3 = x[i][3]
-            y[i][j] = myVariantY(x1, x2, x3) + random.randrange(-10, 10) - 5
+            y[i][j] = myVariantY(x1, x2, x3, interaction) + random.randrange(0, 10) - 5
 
     if interaction:
         # З yрахуванням ефекту взаємодії
         print(f'\nМатриця планування для n = {n}, m = {m}')
 
         print('\nЗ кодованими значеннями факторів:')
-        caption = ["X0", "X1", "X2", "X3", "X1X2", "X1X3", "X2X3", "X1X2X3", "X1^2", "X2^2", "X3^2", "Y1", "Y2", "Y3"]
+        caption = ["X0", "X1", "X2", "X3", "X1X2", "X1X3", "X2X3", "X1X2X3", "Y1", "Y2", "Y3"]
         rows_kod = np.concatenate((x, y), axis=1)
         print_table(caption, rows_kod)
 
@@ -140,7 +147,7 @@ def planing_matrix(n, m, interaction, quadratic_terms):
         print_table(caption, rows_norm)
     else:
         print('\nМатриця планування:')
-        caption = ["X0", "X1", "X2", "X3", "Y1", "Y2", "Y3"]
+        caption = ["X0", "X1", "X2", "X3", "X1X2", "X1X3", "X2X3", "X1X2X3", "X1^2", "X2^2", "X3^2", "Y1", "Y2", "Y3"]
         rows = np.concatenate((x, y), axis=1)
         print_table(caption, rows)
 
@@ -164,19 +171,6 @@ def print_table(caption, values):
     print(table)
 
 
-def find_coef(X, Y, norm=False):
-    skm = lm.LinearRegression(fit_intercept=False)
-    skm.fit(X, Y)
-    B = skm.coef_
-
-    if norm == 1:
-        print('\nКоефіцієнти рівняння регресії з нормованими X:')
-    else:
-        print('\nКоефіцієнти рівняння регресії:')
-    B = [round(i, 3) for i in B]
-    print(B)
-    return B
-
 # Функція для знаходження квадратної дисперсії
 def s_kv(y, y_aver, n, m):
     res = []
@@ -184,6 +178,7 @@ def s_kv(y, y_aver, n, m):
         s = sum([(y_aver[i] - y[i][j]) ** 2 for j in range(m)]) / m
         res.append(s)
     return res
+
 
 # Функція для знаходження критерія фішера
 def kriteriy_fishera(y, y_aver, y_new, n, m, d):
@@ -208,7 +203,8 @@ def check(n, m, interaction, quadratic_terms, iterationNumber):
     x, y, x_norm = planing_matrix(n, m, interaction, quadratic_terms)
 
     y_average = [round(sum(i) / len(i), 3) for i in y]
-    B = find_coef(x, y_average, norm=interaction)
+    
+    B = np.linalg.lstsq(x, y_average, rcond=None)[0]
 
     print('\nСереднє значення y:', y_average)
 
@@ -220,13 +216,11 @@ def check(n, m, interaction, quadratic_terms, iterationNumber):
     for i in range(n):
         if interaction:
             y_perevirka.append(
-                list_bi[0] + list_bi[1] * x_nat[i][1] + list_bi[2] * x_nat[i][2] + list_bi[3] * x_nat[i][3] + list_bi[
-                    4] * x_nat[i][4] \
-                + list_bi[5] * x_nat[i][5] + list_bi[6] * x_nat[i][6] + list_bi[7] * x_nat[i][7] + list_bi[8] *
-                x_nat[i][8] + list_bi[9] * x_nat[i][9] + list_bi[10] * x_nat[i][10])
+                list_bi[0] + list_bi[1] * x_nat[i][1] + list_bi[2] * x_nat[i][2] + list_bi[3] * x_nat[i][3] + list_bi[4] * x_nat[i][4] + list_bi[5] * x_nat[i][5] + list_bi[6] * x_nat[i][6] + list_bi[7] * x_nat[i][7])
         else:
             y_perevirka.append(
-                list_bi[0] + list_bi[1] * x_nat[i][1] + list_bi[2] * x_nat[i][2] + list_bi[3] * x_nat[i][3])
+                list_bi[0] + list_bi[1] * x_nat[i][1] + list_bi[2] * x_nat[i][2] + list_bi[3] * x_nat[i][3] + list_bi[4] * x_nat[i][4] + list_bi[5] * x_nat[i][5] + list_bi[6] * x_nat[i][6] + list_bi[7] * x_nat[i][7] + list_bi[8] *
+                x_nat[i][8] + list_bi[9] * x_nat[i][9] + list_bi[10] * x_nat[i][10])
 
     print(
         "\nПеревірка \n   (підставимо значення факторів з матриці планування і порівняємо результат з середніми значеннями функції відгуку за строками):")
@@ -277,8 +271,8 @@ def check(n, m, interaction, quadratic_terms, iterationNumber):
                                     final_coefficients), 3))
     else:
         for j in range(n):
-            y_new.append(round(
-                regression([x[j][student_t.index(i)] for i in student_t if i in res_student_t], final_coefficients)), 3)
+            y_new.append(round(regression([x[j][i] for i in range(len(student_t)) if student_t[i] in res_student_t],
+            final_coefficients), 3))
 
     print("\nПеревірка при підстановці в спрощене рівняння регресії:")
     differ = []
@@ -291,10 +285,13 @@ def check(n, m, interaction, quadratic_terms, iterationNumber):
     table.add_column("Різниця", differ)
     print(table)
 
-    print(f'\nЗначення рівння регресії з коефіцієнтами {final_coefficients}: ')
+    for i in range(len(final_coefficients)):
+        final_coefficients[i] = round(final_coefficients[i], 3)
+
+    print(f'\nКоефіцієнти рівння регресії: {final_coefficients}')
     for i in range(len(y_new)):
         y_new[i] = round(y_new[i], 3)
-    # print(y_new)
+
     d = len(res_student_t)
 
     if d >= n:
@@ -322,15 +319,20 @@ def check(n, m, interaction, quadratic_terms, iterationNumber):
 def main(n, m, iterationNumber):
     iterationNumber += 1
 
-    if not check(n, m, True, True, iterationNumber):
-        # if not check(14, m, True, True):
-        main(n, m, iterationNumber)
+    # Спробуємо еффект взаємодії
+    if not check(n, m, True, False, iterationNumber):
+        
+        # Якщо модель не адекватна, переходимо до еффекту квадратних членів
+        if not check(14, m, False, True, iterationNumber):
+            main(n, m, iterationNumber)
 
 
 if __name__ == '__main__':
     # Значення за варіантом
     x_range = ((-30, 20), (25, 45), (25, 30))
 
+    # Максимальна кількість ітерацій
     maxIterationNumber = 20
 
-    main(14, 3, 0)
+    # Початок виконання
+    main(8, 3, 0)
